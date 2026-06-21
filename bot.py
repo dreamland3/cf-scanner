@@ -1,6 +1,6 @@
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
-import requests
+import socket
 
 # 1. تنظیم توکن ربات و لینک مینی‌آپ شما
 BOT_TOKEN = "8964001385:AAEO_o4gjhSTEjTZ-BtWNHs_dNCCoQDfr-I"
@@ -8,28 +8,34 @@ MINI_APP_URL = "https://dreamland3.github.io/cf-scanner/"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# 2. آدرس‌های جدید، مستقیم و فعال پروژه IRCf (تست شده و ۱۰۰٪ فعال)
-IRCF_ENDPOINTS = {
-    "mci": "https://raw.githubusercontent.com/ircfspace/cf2dns/master/list/mci.html",
-    "mtn": "https://raw.githubusercontent.com/ircfspace/cf2dns/master/list/mtn.html",
-    "tci": "https://raw.githubusercontent.com/ircfspace/cf2dns/master/list/tci.html",
-    "mbt": "https://raw.githubusercontent.com/ircfspace/cf2dns/master/list/mbt.html"
+# 2. دامنه‌های اختصاصی و دائمی IRCf برای هر اپراتور (بر اساس صفحه list.html)
+IRCF_DOMAINS = {
+    "mci": "mci.ircf.space",
+    "mtn": "mtn.ircf.space",
+    "tci": "tci.ircf.space",
+    "mbt": "mbt.ircf.space"
 }
 
 def fetch_clean_ips(provider_key):
-    """دریافت ۵ آی‌پی تمیز آخر برای هر اپراتور با مدیریت هدرها"""
-    try:
-        url = IRCF_ENDPOINTS.get(provider_key)
-        # اضافه کردن User-Agent برای جلوگیری از بلاک شدن توسط گیت‌هاب
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        response = requests.get(url, headers=headers, timeout=8)
+    """استخراج مستقیم آی‌پی‌های تمیز از طریق DNS Resolution بدون نیاز به دانلود فایل"""
+    domain = IRCF_DOMAINS.get(provider_key)
+    if not domain:
+        return []
         
-        if response.status_code == 200 and response.text.strip():
-            # استخراج آی‌پی‌ها و تمیز کردن خطوط خالی
-            ips = [line.strip() for line in response.text.split('\n') if line.strip() and not line.startswith('#')]
-            return ips[:5]
+    try:
+        ips = []
+        # گرفتن تمام رکوردها (IPs) متصل به این دامنه از سرور DNS
+        addr_info = socket.getaddrinfo(domain, 80, proto=socket.IPPROTO_TCP)
+        for item in addr_info:
+            ip = item[4][0]
+            # فقط آی‌پی‌های IPv4 را جدا می‌کنیم و جلوی تکراری‌ها را می‌گیریم
+            if ":" not in ip and ip not in ips:
+                ips.append(ip)
+        
+        if ips:
+            return ips[:5] # برگشت دادن ۵ آی‌پی اول
     except Exception as e:
-        print(f"Error fetching IPs for {provider_key}: {e}")
+        print(f"DNS lookup error for {domain}: {e}")
     return []
 
 # 3. هندلر دستور استارت و منوی اصلی ترکیبی
@@ -65,16 +71,16 @@ def show_providers(call):
 def send_ips(call):
     provider = call.data.split("_")[1]
     provider_names = {"mci": "همراه اول", "mtn": "ایرانسل", "tci": "مخابرات", "mbt": "مبین‌نت"}
-    bot.answer_callback_query(call.id, text="در حال دریافت اطلاعات...")
+    bot.answer_callback_query(call.id, text="در حال دریافت اطلاعات زنده...")
     
     ips = fetch_clean_ips(provider)
     if ips:
-        ip_text = f"✅ **آی‌پی‌های تمیز مخصوص [{provider_names[provider]}]:**\n\n"
+        ip_text = f"✅ **آی‌پی‌های تمیز و زنده مخصوص [{provider_names[provider]}]:**\n\n"
         for ip in ips:
             ip_text += f"`{ip}`\n"
         ip_text += "\n📌 برای کپی، روی آی‌پی ضربه بزنید."
     else:
-        ip_text = f"❌ متأسفانه در حال حاضر دریافت اطلاعات برای [{provider_names[provider]}] با خطا مواجه شد. لطفاً چند لحظه دیگر دوباره تلاش کنید."
+        ip_text = f"❌ در حال حاضر دامنه‌ی اختصاصی [{provider_names[provider]}] پاسخی نداد. لطفاً چند لحظه دیگر دوباره تلاش کنید."
         
     markup = InlineKeyboardMarkup()
     markup.add(InlineKeyboardButton("🔙 بازگشت به لیست اپراتورها", callback_data="show_providers"))
