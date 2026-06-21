@@ -11,7 +11,7 @@
             background-color: #1c1c1e;
             color: #ffffff;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             text-align: center;
         }
         .container {
@@ -22,44 +22,61 @@
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        h2 { color: #30d158; }
-        p { color: #aeaeb2; font-size: 14px; }
-        button {
-            background-color: #30d158;
-            color: black;
-            border: none;
-            padding: 12px 25px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 10px;
-            cursor: pointer;
-            width: 100%;
+        h2 { color: #30d158; margin-bottom: 5px; }
+        p { color: #aeaeb2; font-size: 13px; line-height: 1.5; }
+        .btn-group {
+            display: flex;
+            gap: 10px;
             margin-top: 15px;
         }
+        button {
+            flex: 1;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        #scanBtn { background-color: #30d158; color: black; }
+        #scanBtn:disabled { background-color: #48484a; color: #8e8e93; }
+        #stopBtn { background-color: #ff453a; color: white; display: none; }
+        #copyAllBtn { background-color: #0a84ff; color: white; margin-top: 10px; width: 100%; display: none; }
         .result-item {
             background: #3a3a3c;
-            padding: 10px;
+            padding: 12px;
             margin: 8px 0;
             border-radius: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-family: monospace;
-            font-size: 15px;
+            font-size: 14px;
+            cursor: pointer;
         }
+        .result-item:hover { background: #48484a; }
         .latency { color: #ffd60a; font-weight: bold; }
+        .copy-hint { font-size: 11px; color: #8e8e93; text-align: right; margin-top: 5px; display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>🚀 اسکنر زنده اینترنت شما</h2>
-    <p>⚠️ حتماً مطمئن شوید که VPN کل گوشی شما خاموش است و صرفاً با پروکسی داخلی تلگرام متصل هستید.</p>
+    <p>⚠️ حتماً مطمئن شوید فیلترشکن (VPN) کل گوشی/سیستم شما خاموش است و صرفاً با پروکسی داخلی تلگرام (MTProto) متصل هستید.</p>
     
-    <button id="scanBtn" onclick="startWebScan()">شروع اسکن زنده شبکه</button>
+    <div class="btn-group">
+        <button id="scanBtn" onclick="startWebScan()">شروع اسکن</button>
+        <button id="stopBtn" onclick="stopWebScan()">توقف</button>
+    </div>
+
+    <div id="status" style="margin-top: 15px; color: #ff9f0a; font-size: 14px;"></div>
     
-    <div id="status" style="margin-top: 15px; color: #ff9f0a;"></div>
-    <div id="results" style="margin-top: 20px; text-align: left;"></div>
+    <button id="copyAllBtn" onclick="copyAllIPs()">📋 کپی کردن همه آی‌پی‌ها</button>
+    <div id="copyHint" class="copy-hint">💡 برای کپی تکی، روی هر آی‌پی ضربه بزنید.</div>
+    
+    <div id="results" style="margin-top: 15px; text-align: left;"></div>
 </div>
 
 <script>
@@ -67,15 +84,21 @@
     tg.ready();
     tg.expand();
 
+    // Expanded IP pool for higher success rate
     const ipPool = [
         "172.67.0.1", "104.16.0.1", "104.24.0.1", "162.159.0.1", 
-        "198.41.128.1", "141.101.64.1", "190.93.240.1", "188.114.96.1"
+        "198.41.128.1", "141.101.64.1", "190.93.240.1", "188.114.96.1",
+        "172.67.10.2", "104.17.5.4", "104.20.10.1", "162.159.10.5",
+        "198.41.130.10", "141.101.65.20", "188.114.97.5"
     ];
+
+    let isScanning = false;
+    let foundIps = [];
 
     async function testIPLatency(ip) {
         const start = performance.now();
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 900);
+        const timeoutId = setTimeout(() => controller.abort(), 800);
 
         try {
             await fetch(`https://${ip}:443`, { mode: 'no-cors', signal: controller.signal });
@@ -83,46 +106,92 @@
             return Math.round(performance.now() - start);
         } catch (e) {
             const duration = performance.now() - start;
-            if (duration < 900) {
-                return Math.round(duration);
-            }
+            if (duration < 800) return Math.round(duration);
         }
         return null;
     }
 
     async function startWebScan() {
-        const btn = document.getElementById('scanBtn');
-        const status = document.getElementById('status');
-        const resultsDiv = document.getElementById('results');
+        isScanning = true;
+        foundIps = [];
         
-        btn.disabled = true;
-        resultsDiv.innerHTML = "";
-        status.innerText = "⏳ در حال بررسی پینگ پکت‌ها روی خط شما...";
+        document.getElementById('scanBtn').disabled = true;
+        document.getElementById('stopBtn').style.display = 'block';
+        document.getElementById('copyAllBtn').style.display = 'none';
+        document.getElementById('copyHint').style.display = 'none';
+        document.getElementById('results').innerHTML = "";
+        
+        const status = document.getElementById('status');
 
-        let foundIps = [];
-
-        for (let ip of ipPool) {
+        for (let i = 0; i < ipPool.length; i++) {
+            if (!isScanning) break;
+            
+            let ip = ipPool[i];
+            status.innerText = `⏳ در حال تست آی‌پي (${i + 1}/${ipPool.length}): ${ip}`;
+            
             let latency = await testIPLatency(ip);
             if (latency && latency < 500) {
                 foundIps.push({ ip: ip, latency: latency });
+                renderResults();
             }
         }
 
-        foundIps.sort((a, b) => a.latency - b.latency);
+        endScanProcess();
+    }
 
-        status.innerText = "";
-        btn.disabled = false;
+    function stopWebScan() {
+        isScanning = false;
+        document.getElementById('status').innerText = "🛑 اسکن توسط کاربر متوقف شد.";
+        endScanProcess();
+    }
 
-        if (foundIps.length === 0) {
-            resultsDiv.innerHTML = "<p style='color:#ff453a; text-align:center;'>❌ هیچ آی‌پی زنده‌ای یافت نشد. احتمالاً فیلترشکن شما روشن است یا اختلال شبکه بالاست.</p>";
-            return;
+    function endScanProcess() {
+        isScanning = false;
+        document.getElementById('scanBtn').disabled = false;
+        document.getElementById('stopBtn').style.display = 'none';
+        
+        if (foundIps.length > 0) {
+            document.getElementById('status').innerText = `✅ اسکن پایان یافت. ${foundIps.length} آی‌پی تمیز پیدا شد.`;
+            document.getElementById('copyAllBtn').style.display = 'block';
+            document.getElementById('copyHint').style.display = 'block';
+        } else {
+            document.getElementById('status').innerText = "❌ هیچ آی‌پی پایداری یافت نشد.";
         }
+    }
 
-        foundIps.forEach(item => {
+    function renderResults() {
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = "";
+        
+        // Sort from fastest to slowest
+        let sorted = [...foundIps].sort((a, b) => a.latency - b.latency);
+        
+        sorted.forEach(item => {
             const row = document.createElement('div');
             row.className = 'result-item';
+            row.onclick = () => copyToClipboard(item.ip);
             row.innerHTML = `<span>⚡ ${item.ip}</span><span class="latency">${item.latency}ms</span>`;
             resultsDiv.appendChild(row);
+        });
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text);
+        tg.showPopup({
+            title: 'کپی شد!',
+            message: `آی‌پی ${text} با موفقیت کپی شد.`,
+            buttons: [{type: 'ok'}]
+        });
+    }
+
+    function copyAllIPs() {
+        if (foundIps.length === 0) return;
+        let allText = foundIps.sort((a, b) => a.latency - b.latency).map(item => item.ip).join('\n');
+        navigator.clipboard.writeText(allText);
+        tg.showPopup({
+            title: 'کپی گروهی!',
+            message: 'تمام آی‌پی‌های یافت شده کپی شدند.',
+            buttons: [{type: 'ok'}]
         });
     }
 </script>
