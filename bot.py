@@ -82,7 +82,7 @@ def show_providers(call):
     btn_tci = InlineKeyboardButton("مخابرات (TCI)", callback_data="get_tci")
     
     btn_shatel = InlineKeyboardButton("شاتل (Shatel)", callback_data="get_shatel")
-    btn_pishgaman = InlineKeyboardButton("آسیاتک / های‌وب", callback_data="get_pishgaman")
+    btn_pishgaman = InlineKeyboardButton("پیشگامان", callback_data="get_pishgaman")
     btn_mbt = InlineKeyboardButton("مبین‌نت (MBT)", callback_data="get_mbt")
     
     btn_back = InlineKeyboardButton("🔙 بازگشت به منوی اصلی", callback_data="back_main")
