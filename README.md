@@ -1,5 +1,5 @@
 # cf-scanner
-# 🚀 Cloudflare Smart Scanner Bot (cf-scanner)
+#  Cloudflare Smart Scanner Bot (cf-scanner)
 
 یک سیستم هوشمند و دوگانه برای تست، اسکن و یافتن آی‌پی‌های تمیز و بدون فیلتر کلودفلر (Cloudflare Clean IPs) مخصوص اپراتورهای مختلف در ایران. این پروژه از دو بخش **ربات تلگرام (بک‌اند پایتون)** و **مینی‌آپ/وب‌آپ (فرانت‌اند جاوااسکریپت)** تشکیل شده است.
 
@@ -70,3 +70,4 @@ tail -f /root/cf-scanner/bot.log
 این مخزن کاملاً پابلیک و متن‌باز است. جهت حفظ امنیت، توکن ربات تلگرام به هیچ عنوان در کدهای این مخزن هاردکد (Hardcode) نشده و کاملاً از طریق دستور os.getenv("BOT_TOKEN") از هسته سیستم‌عامل سرور فراخوانی می‌شود.
 
 🌐 Developed with ❤️ for bypassing networking restrictions.
+@MyCfScannerBot
