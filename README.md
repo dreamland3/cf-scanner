@@ -48,3 +48,25 @@ StandardError=append:/root/cf-scanner/bot.log
 
 [Install]
 WantedBy=multi-user.target
+
+دستورات مدیریت سرویس ربات
+برای مدیریت این ربات روی سرور از دستورات استاندارد زیر استفاده می‌شود:
+
+شروع به کار و فعال‌سازی خودکار در زمان بوت سرور:
+
+Bash
+sudo systemctl daemon-reload
+sudo systemctl enable cf-scanner-bot.service
+sudo systemctl start cf-scanner-bot.service
+بررسی وضعیت زنده بودن ربات:
+
+Bash
+sudo systemctl status cf-scanner-bot.service
+مشاهده لاگ‌ها و خطاهای احتمالی به صورت زنده:
+
+Bash
+tail -f /root/cf-scanner/bot.log
+🔒 ملاحظات امنیتی
+این مخزن کاملاً پابلیک و متن‌باز است. جهت حفظ امنیت، توکن ربات تلگرام به هیچ عنوان در کدهای این مخزن هاردکد (Hardcode) نشده و کاملاً از طریق دستور os.getenv("BOT_TOKEN") از هسته سیستم‌عامل سرور فراخوانی می‌شود.
+
+🌐 Developed with ❤️ for bypassing networking restrictions.
