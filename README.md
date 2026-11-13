@@ -9,25 +9,26 @@
 
 روش اول، اسکن زنده: مینی‌اپ تلگرام که از روی خود گوشی کاربر آی‌پی‌ها را تست می‌کند.
 مناسب کسی که فیلترشکن کل سیستمش را ندارد و فقط با پروکسی داخلی تلگرام آنلاین است.
-یک لیست از آی‌پی‌های رایج کلودفلر را یکی‌یکی با تایم‌اوت ۸۰۰ میلی‌ثانیه صدا می‌زند،
-هر کدام زیر ۵۰۰ میلی‌ثانیه جواب داد می‌ماند، آخرش بر اساس سرعت مرتب می‌شود و با یک ضربه
-کپی می‌شود.
+بیست‌وچهار آی‌پی نمونه از رنج‌های مختلف کلودفلر، شش‌تا شش‌تا و موازی تست می‌شوند، هر کدام
+زیر ۶۰۰ میلی‌ثانیه جواب داد می‌ماند، آخرش بر اساس تأخیر مرتب می‌شود و با یک ضربه کپی
+می‌شود. پورت را هم می‌شود عوض کرد (۴۴۳، ۲۰۵۳، ۸۴۴۳، ۸۰).
 
-روش دوم، لیست آماده: ربات لیست آی‌پی تمیز هر اپراتور را از دامنه‌های اختصاصی هر اپراتور
-می‌گیرد (`socket.getaddrinfo`، فقط IPv4، سه بار تلاش) و پنج تا برمی‌گرداند. مناسب کسی
-که VPN کل سیستمش روشن است ولی می‌خواهد کانفیگش را عوض کند.
+روش دوم، لیست آماده: ربات لیست آی‌پی هر اپراتور را از دامنهٔ اختصاصی همان اپراتور می‌گیرد
+(`socket.getaddrinfo`، فقط IPv4، چند تلاش، با فالبک DNS-over-HTTPS). هر آی‌پی برگشتی با
+رنج‌های رسمی کلودفلر اعتبارسنجی می‌شود و هر چیزی که مال کلودفلر نباشد دور ریخته می‌شود،
+چون آی‌پی غیرکلودفلر کانفیگ کاربر را می‌شکند. اگر لیست اختصاصی یک اپراتور در دسترس نبود،
+ربات به‌جای پیام خالی، آی‌پی‌های زنده‌ای می‌دهد که همین حالا از سمت سرور روی پورت ۴۴۳ تست
+شده‌اند و در پیام هم می‌نویسد که این‌ها لیست اختصاصی نیستند.
 
 اپراتورهای فعلی: همراه اول، ایرانسل، رایتل، مخابرات، شاتل، پیشگامان، مبین‌نت و لیست عمومی.
 
 ## فایل‌ها
 
 ```
-bot.py        ربات تلگرام (pyTelegramBotAPI) - لیست‌های آماده + دکمه ورود به مینی‌اپ
-index.html    مینی‌اپ، تک‌فایل، بدون بیلد و بدون وابستگی، روی GitHub Pages میزبانی می‌شود
+bot.py             ربات تلگرام (pyTelegramBotAPI) - لیست‌های آماده + دکمهٔ ورود به مینی‌اپ
+index.html         مینی‌اپ، تک‌فایل، بدون بیلد و بدون وابستگی، روی GitHub Pages
 requirements.txt
 ```
-
-فقط همین دو فایل کد هست. `bot.py` حدود ۶ کیلوبایت و `index.html` حدود ۷.۵ کیلوبایت است.
 
 ## اجرا
 
@@ -39,22 +40,27 @@ export BOT_TOKEN="توکن ربات از BotFather"
 python3 bot.py
 ```
 
-توکن هیچ‌وقت داخل کد نیست، از متغیر محیطی خوانده می‌شود. اگر نباشد برنامه با پیام خطا
-بالا نمی‌آید.
+توکن هیچ‌وقت داخل کد نیست. برای تست بدون بالا آوردن ربات (بدون قطع شدن نمونهٔ در حال اجرا):
 
-`MINI_APP_URL` بالای `bot.py` باید آدرس مینی‌اپ باشد (همان GitHub Pages همین مخزن).
-اگر عوضش کنی دکمه اسکن زنده از کار می‌افتد.
+```
+python3 bot.py --selftest
+```
+
+این دستور اتصال تلگرام را چک می‌کند، هر هشت اپراتور را می‌گیرد و جدول نتیجه را چاپ می‌کند.
+
+متغیرهای محیطی اختیاری: `MINI_APP_URL`، `CACHE_TTL` (پیش‌فرض ۱۲۰ ثانیه)،
+`REQUEST_GAP` (فاصلهٔ مجاز بین دو فشار دکمهٔ هر کاربر)، `PROBE_PORT`، `PROBE_TIMEOUT`.
 
 ## اجرای دائمی با systemd
 
-توکن را در یک فایل با دسترسی ۶۰۰ بگذار:
+توکن را در فایلی با دسترسی ۶۰۰ بگذار:
 
 ```
 echo 'BOT_TOKEN=توکن' | sudo tee /etc/cf-scanner.env >/dev/null
 sudo chmod 600 /etc/cf-scanner.env
 ```
 
-بعد یونیت `cf-scanner-bot.service` این مخزن را کپی کن:
+بعد یونیت `cf-scanner-bot.service` را نصب کن:
 
 ```
 sudo cp cf-scanner-bot.service /etc/systemd/system/
@@ -62,25 +68,32 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now cf-scanner-bot
 ```
 
-لاگ زنده:
+لاگ:
 
 ```
 tail -f /root/cf-scanner/bot.log
 ```
 
+## نکته‌های فنی
+
+- قفل تک‌نمونه (`flock` روی `/tmp/cf-scanner.lock`) جلوی خطای `409 Conflict` را می‌گیرد؛
+  این خطا وقتی رخ می‌دهد که دو نمونه هم‌زمان از یک توکن polling کنند.
+- حلقهٔ polling با backoff نمایی است، پس قطعی موقت شبکه یا خطای ۵۰۲ تلگرام پروسه را
+  از پا نمی‌اندازد.
+- نتیجهٔ لیست‌ها ۱۲۰ ثانیه و نتیجهٔ تست آی‌پی‌ها ۱۰ دقیقه کش می‌شود تا هر فشار دکمه یک
+  کوئری تازه نزند.
+- هر کاربر حداقل سه ثانیه بین دو درخواست فاصله دارد (جلوگیری از ۴۲۹).
+
 ## مینی‌اپ
 
-`index.html` را از تنظیمات مخزن (Settings → Pages) روی شاخه main منتشر کن. چون تک‌فایل و
-بدون وابستگی است، همان‌جا کار می‌کند. اگر رنج یا پورت دیگری می‌خواهی، فقط آرایه `ipPool`
-و پورت داخل `testIPLatency` را عوض کن.
+`index.html` را از تنظیمات مخزن (Settings → Pages) روی شاخهٔ main منتشر کن. تک‌فایل است و
+وابستگی ندارد. اگر رنج دیگری می‌خواهی، فقط آرایهٔ `ipPool` را عوض کن.
 
-## ورودی‌ها و پیشنهاد کار
+## مشارکت
 
-issue و pull request باز است. اگر دامنه اپراتور جدیدی اضافه شد، هم `IRCF_DOMAINS` در
-`bot.py` و هم جدول همین فایل را با هم به‌روز کن.
-
-چیزهایی که خودم می‌خواهم اضافه کنم: اسکن موازی به‌جای یکی‌یکی (اسکن الان کند است)، پورت
-قابل تنظیم، و retry برای قطعی‌های API تلگرام که در لاگ زیاد دیده می‌شود.
+issue و pull request باز است. اگر دامنهٔ اپراتور جدیدی اضافه شد، هم `IRCF_DOMAINS` در
+`bot.py` و هم جدول همین فایل را با هم به‌روز کن. تعداد اپراتورهای زنده را می‌شود با
+`--selftest` دید.
 
 ## مجوز
 
@@ -90,49 +103,31 @@ MIT. فایل LICENSE را ببین.
 
 ## English
 
-Cloudflare clean-IP finder for Iranian users. It is two pieces: a Telegram bot (Python)
-and a Telegram Mini App (a single HTML file).
+Cloudflare clean-IP finder for Iranian users: a Telegram bot plus a single-file Telegram
+Mini App.
 
-The problem it solves: Cloudflare edge IPs that work well from one Iranian ISP are often
-dead or slow from another. The project gives two ways to find working ones.
+Live scan: the Mini App probes 24 sample IPs from different Cloudflare ranges, six at a
+time, keeps whatever answers under 600 ms on the selected port, and sorts the survivors by
+measured latency. It runs on the user's device, which matters for people whose only
+connection is Telegram's built-in MTProto proxy.
 
-Live scan: the Mini App probes a pool of Cloudflare IPs from the user's own device with an
-800 ms timeout, keeps the ones answering under 500 ms, sorts them by measured latency and
-copies them on tap. This is for users whose only connection is Telegram's built-in MTProto
-proxy.
+Ready lists: the bot resolves each operator's dedicated domain (IPv4, retries, DNS-over-HTTPS
+fallback) and validates every returned address against Cloudflare's published ranges, because
+a non-Cloudflare address silently breaks the user's config. When an operator's list is
+unavailable the bot returns addresses it has just probed on port 443 and says so in the
+message instead of showing an error.
 
-Ready lists: the bot resolves the per-operator domains over DNS (IPv4 only, three attempts)
-and returns up to five IPs. This is for users with a system-wide VPN who want to swap the
-IPs in their config.
-
-Operators covered: MCI, Irancell, Rightel, TCI, Shatel, Pishgaman, Mobinnet, plus a public
-list.
-
-### Run
-
-Python 3.9+.
+Run:
 
 ```
 pip install -r requirements.txt
 export BOT_TOKEN="token from BotFather"
-python3 bot.py
+python3 bot.py            # run the bot
+python3 bot.py --selftest # check token and all operators without polling
 ```
 
-The token is read from the environment only; the script refuses to start without it.
-Set `MINI_APP_URL` at the top of `bot.py` to the published GitHub Pages URL of
-`index.html`, otherwise the live-scan button points nowhere.
+The token is read from the environment only; a single-instance lock prevents 409 conflicts,
+polling backs off on API errors, list results are cached for two minutes, and each user gets
+one request per three seconds.
 
-For a permanent install, put the token in `/etc/cf-scanner.env` (mode 600) and use the
-`cf-scanner-bot.service` unit in this repository.
-
-### Notes
-
-Tested on Python 3.12 with pyTelegramBotAPI 4.34.0 and requests 2.34.2.
-
-Known rough edges, in the order I want to fix them: the live scan is sequential and slow on
-large pools, the port is hard-coded to 443, and the bot logs a lot of Telegram API timeouts
-and `409 Conflict` errors when more than one instance polls at the same time.
-
-### License
-
-MIT. See LICENSE.
+License: MIT.

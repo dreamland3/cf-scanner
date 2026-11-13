@@ -1,199 +1,227 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CF Live Web Scanner</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #1c1c1e;
-            color: #ffffff;
-            margin: 0;
-            padding: 15px;
-            text-align: center;
-        }
-        .container {
-            max-width: 400px;
-            margin: 0 auto;
-            background: #2c2c2e;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-        h2 { color: #30d158; margin-bottom: 5px; }
-        p { color: #aeaeb2; font-size: 13px; line-height: 1.5; }
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        button {
-            flex: 1;
-            padding: 12px;
-            font-size: 15px;
-            font-weight: bold;
-            border-radius: 10px;
-            border: none;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        #scanBtn { background-color: #30d158; color: black; }
-        #scanBtn:disabled { background-color: #48484a; color: #8e8e93; }
-        #stopBtn { background-color: #ff453a; color: white; display: none; }
-        #copyAllBtn { background-color: #0a84ff; color: white; margin-top: 10px; width: 100%; display: none; }
-        .result-item {
-            background: #3a3a3c;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-family: monospace;
-            font-size: 14px;
-            cursor: pointer;
-        }
-        .result-item:hover { background: #48484a; }
-        .latency { color: #ffd60a; font-weight: bold; }
-        .copy-hint { font-size: 11px; color: #8e8e93; text-align: right; margin-top: 5px; display: none; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>اسکنر زنده کلودفلر</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root { --bg:#1c1c1e; --card:#2c2c2e; --row:#3a3a3c; --row-h:#48484a;
+          --txt:#fff; --muted:#aeaeb2; --green:#30d158; --red:#ff453a; --blue:#0a84ff; --amber:#ffd60a; }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg);
+         color:var(--txt); margin:0; padding:14px; }
+  .container { max-width:420px; margin:0 auto; background:var(--card); padding:16px; border-radius:14px; }
+  h2 { margin:0 0 6px; font-size:19px; color:var(--green); text-align:center; }
+  p.hint { color:var(--muted); font-size:12.5px; line-height:1.6; margin:0 0 12px; text-align:center; }
+  .row { display:flex; gap:8px; }
+  select, button { font-family:inherit; }
+  select { flex:0 0 34%; padding:11px 8px; font-size:14px; border-radius:9px; border:1px solid #48484a;
+           background:#3a3a3c; color:var(--txt); }
+  button { border:none; border-radius:9px; font-size:14.5px; font-weight:600; padding:11px; cursor:pointer; }
+  #scanBtn { flex:1; background:var(--green); color:#000; }
+  #scanBtn:disabled { background:#48484a; color:#8e8e93; cursor:default; }
+  #stopBtn { flex:1; background:var(--red); color:#fff; display:none; }
+  #copyAllBtn { width:100%; background:var(--blue); color:#fff; margin-top:10px; display:none; }
+  #status { margin-top:12px; color:var(--amber); font-size:13.5px; text-align:center; min-height:18px; }
+  #meta { margin-top:4px; color:var(--muted); font-size:12px; text-align:center; }
+  .result-item { background:var(--row); padding:11px 13px; margin:7px 0; border-radius:8px; display:flex;
+                 justify-content:space-between; align-items:center; font-family:ui-monospace,monospace;
+                 font-size:14px; cursor:pointer; }
+  .result-item:hover { background:var(--row-h); }
+  .latency { color:var(--amber); font-weight:700; }
+  .copy-hint { font-size:11.5px; color:#8e8e93; text-align:center; margin-top:8px; display:none; }
+</style>
 </head>
 <body>
-
 <div class="container">
-    <h2>🚀 اسکنر زنده اینترنت شما</h2>
-    <p>⚠️ حتماً مطمئن شوید فیلترشکن (VPN) کل گوشی/سیستم شما خاموش است و صرفاً با پروکسی داخلی تلگرام (MTProto) متصل هستید.</p>
-    
-    <div class="btn-group">
-        <button id="scanBtn" onclick="startWebScan()">شروع اسکن</button>
-        <button id="stopBtn" onclick="stopWebScan()">توقف</button>
-    </div>
+  <h2>اسکنر زنده کلودفلر</h2>
+  <p class="hint">فیلترشکن کل دستگاه را خاموش کن و فقط با پروکسی داخلی تلگرام (MTProto) وصل شو.
+     اسکن از روی گوشی خودت انجام می‌شود، نه از سرور.</p>
 
-    <div id="status" style="margin-top: 15px; color: #ff9f0a; font-size: 14px;"></div>
-    
-    <button id="copyAllBtn" onclick="copyAllIPs()">📋 کپی کردن همه آی‌پی‌ها</button>
-    <div id="copyHint" class="copy-hint">💡 برای کپی تکی، روی هر آی‌پی ضربه بزنید.</div>
-    
-    <div id="results" style="margin-top: 15px; text-align: left;"></div>
+  <div class="row">
+    <button id="scanBtn">شروع اسکن</button>
+    <button id="stopBtn">توقف</button>
+    <select id="portSel" title="پورت">
+      <option value="443" selected>پورت 443</option>
+      <option value="2053">پورت 2053</option>
+      <option value="8443">پورت 8443</option>
+      <option value="80">پورت 80</option>
+    </select>
+  </div>
+
+  <div id="status"></div>
+  <div id="meta"></div>
+
+  <button id="copyAllBtn">کپی همهٔ آی‌پی‌ها</button>
+  <div class="copy-hint" id="copyHint">برای کپی تکی، روی هر آی‌پی ضربه بزن.</div>
+  <div id="results"></div>
 </div>
 
 <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
+  // شیم امن: بیرون از تلگرام (یا در مرورگر معمولی) هم کار کند
+  const tg = (window.Telegram && window.Telegram.WebApp) || {
+    ready(){}, expand(){}, close(){},
+    showPopup(o){ if (o && o.message) alert(o.title ? o.title + "\n\n" + o.message : o.message); },
+    HapticFeedback: { impactOccurred(){} }
+  };
+  tg.ready(); tg.expand();
 
-    // Expanded IP pool for higher success rate
-    const ipPool = [
-        "172.67.0.1", "104.16.0.1", "104.24.0.1", "162.159.0.1", 
-        "198.41.128.1", "141.101.64.1", "190.93.240.1", "188.114.96.1",
-        "172.67.10.2", "104.17.5.4", "104.20.10.1", "162.159.10.5",
-        "198.41.130.10", "141.101.65.20", "188.114.97.5"
-    ];
+  // نمونهٔ آی‌پی از رنج‌های کلودفلر؛ اسکن موازی آن‌ها را غربال می‌کند
+  const ipPool = [
+    "172.67.0.1","104.16.0.1","104.24.0.1","162.159.0.1","198.41.128.1",
+    "141.101.64.1","190.93.240.1","188.114.96.1","172.67.10.2","104.17.5.4",
+    "104.20.10.1","162.159.10.5","198.41.130.10","141.101.65.20","188.114.97.5",
+    "104.17.141.179","172.67.242.89","104.19.156.170","103.21.244.1","108.162.192.1",
+    "172.64.0.1","104.18.0.1","104.27.0.1","190.93.244.1"
+  ];
 
-    let isScanning = false;
-    let foundIps = [];
+  const CONCURRENCY = 6;      // چند تست هم‌زمان
+  const TIMEOUT_MS = 900;     // سقف انتظار هر تست
+  const MAX_LATENCY = 600;    // بالاتر از این، آی‌پی «تمیز» حساب نمی‌شود
+  const STORE_KEY = "cfscan:last";
 
-    async function testIPLatency(ip) {
-        const start = performance.now();
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 800);
+  let found = new Map();      // ip -> latency
+  let isScanning = false;
+  let controllers = new Set();
 
-        try {
-            await fetch(`https://${ip}:443`, { mode: 'no-cors', signal: controller.signal });
-            clearTimeout(timeoutId);
-            return Math.round(performance.now() - start);
-        } catch (e) {
-            const duration = performance.now() - start;
-            if (duration < 800) return Math.round(duration);
-        }
-        return null;
+  const $ = id => document.getElementById(id);
+
+  function probe(ip, port) {
+    return new Promise(resolve => {
+      const t0 = performance.now();
+      const ctrl = new AbortController();
+      controllers.add(ctrl);
+      const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+      fetch(`https://${ip}:${port}/?_=${t0}`, { mode:"no-cors", cache:"no-store", signal: ctrl.signal })
+        .then(() => { clearTimeout(timer); resolve(Math.round(performance.now() - t0)); })
+        .catch(() => {
+          clearTimeout(timer);
+          const dt = performance.now() - t0;
+          // خطای TLS/شبکه هم برای ما یک RTT واقعی است؛ فقط خطای فوری (زیر ۱۵ms) رد می‌شود
+          resolve(dt >= 15 && dt < TIMEOUT_MS ? Math.round(dt) : null);
+        })
+        .finally(() => controllers.delete(ctrl));
+    });
+  }
+
+  // دو بار تست، کم‌ترین زمان؛ نتیجه پایدارتر از یک بار
+  async function probeBest(ip, port) {
+    const a = await probe(ip, port);
+    if (a === null) return null;
+    const b = await probe(ip, port);
+    return b === null ? a : Math.min(a, b);
+  }
+
+  async function scan(port) {
+    isScanning = true;
+    found = new Map();
+    render();
+    const total = ipPool.length;
+    let done = 0;
+    const startedAt = performance.now();
+    const tick = () => {
+      $("status").textContent = `در حال تست ${done}/${total} آی‌پی...`;
+      $("meta").textContent = `${found.size} آی‌پی سالم تا این لحظه`;
+    };
+    tick();
+
+    let idx = 0;
+    async function worker() {
+      while (isScanning && idx < total) {
+        const ip = ipPool[idx++];
+        const ms = await probeBest(ip, port);
+        done++;
+        if (ms !== null && ms <= MAX_LATENCY) found.set(ip, ms);
+        tick();
+        render();
+      }
     }
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
+    finish(startedAt);
+  }
 
-    async function startWebScan() {
-        isScanning = true;
-        foundIps = [];
-        
-        document.getElementById('scanBtn').disabled = true;
-        document.getElementById('stopBtn').style.display = 'block';
-        document.getElementById('copyAllBtn').style.display = 'none';
-        document.getElementById('copyHint').style.display = 'none';
-        document.getElementById('results').innerHTML = "";
-        
-        const status = document.getElementById('status');
-
-        for (let i = 0; i < ipPool.length; i++) {
-            if (!isScanning) break;
-            
-            let ip = ipPool[i];
-            status.innerText = `⏳ در حال تست آی‌پي (${i + 1}/${ipPool.length}): ${ip}`;
-            
-            let latency = await testIPLatency(ip);
-            if (latency && latency < 500) {
-                foundIps.push({ ip: ip, latency: latency });
-                renderResults();
-            }
-        }
-
-        endScanProcess();
+  function finish(startedAt) {
+    isScanning = false;
+    controllers.forEach(c => { try { c.abort(); } catch (e) {} });
+    controllers.clear();
+    toggleButtons();
+    const seconds = ((performance.now() - startedAt) / 1000).toFixed(1);
+    if (found.size > 0) {
+      $("status").textContent = `${found.size} آی‌پی سالم پیدا شد — ${seconds} ثانیه`;
+      const best = Math.min(...found.values());
+      $("meta").textContent = `سریع‌ترین: ${best} میلی‌ثانیه`;
+      $("copyAllBtn").style.display = "block";
+      $("copyHint").style.display = "block";
+      try { localStorage.setItem(STORE_KEY, JSON.stringify([...found])); } catch (e) {}
+    } else {
+      $("status").textContent = "هیچ آی‌پی سالمی پیدا نشد.";
+      $("meta").textContent = "پورت دیگری را امتحان کن یا اسکن را دوباره بزن.";
     }
+  }
 
-    function stopWebScan() {
-        isScanning = false;
-        document.getElementById('status').innerText = "🛑 اسکن توسط کاربر متوقف شد.";
-        endScanProcess();
-    }
+  function toggleButtons() {
+    $("scanBtn").disabled = isScanning;
+    $("stopBtn").style.display = isScanning ? "block" : "none";
+  }
 
-    function endScanProcess() {
-        isScanning = false;
-        document.getElementById('scanBtn').disabled = false;
-        document.getElementById('stopBtn').style.display = 'none';
-        
-        if (foundIps.length > 0) {
-            document.getElementById('status').innerText = `✅ اسکن پایان یافت. ${foundIps.length} آی‌پی تمیز پیدا شد.`;
-            document.getElementById('copyAllBtn').style.display = 'block';
-            document.getElementById('copyHint').style.display = 'block';
-        } else {
-            document.getElementById('status').innerText = "❌ هیچ آی‌پی پایداری یافت نشد.";
-        }
-    }
+  function render() {
+    const box = $("results");
+    box.innerHTML = "";
+    [...found.entries()].sort((a, b) => a[1] - b[1]).forEach(([ip, ms]) => {
+      const div = document.createElement("div");
+      div.className = "result-item";
+      div.onclick = () => copyOne(ip);
+      const left = document.createElement("span"); left.textContent = ip;
+      const right = document.createElement("span"); right.className = "latency"; right.textContent = ms + "ms";
+      div.appendChild(left); div.appendChild(right);
+      box.appendChild(div);
+    });
+  }
 
-    function renderResults() {
-        const resultsDiv = document.getElementById('results');
-        resultsDiv.innerHTML = "";
-        
-        // Sort from fastest to slowest
-        let sorted = [...foundIps].sort((a, b) => a.latency - b.latency);
-        
-        sorted.forEach(item => {
-            const row = document.createElement('div');
-            row.className = 'result-item';
-            row.onclick = () => copyToClipboard(item.ip);
-            row.innerHTML = `<span>⚡ ${item.ip}</span><span class="latency">${item.latency}ms</span>`;
-            resultsDiv.appendChild(row);
-        });
-    }
+  function copyOne(ip) {
+    navigator.clipboard.writeText(ip).then(() => {
+      tg.showPopup({ title:"کپی شد", message:`آی‌پی ${ip} کپی شد.` });
+      tg.HapticFeedback.impactOccurred();
+    });
+  }
 
-    function copyToClipboard(text) {
-        navigator.clipboard.writeText(text);
-        tg.showPopup({
-            title: 'کپی شد!',
-            message: `آی‌پی ${text} با موفقیت کپی شد.`,
-            buttons: [{type: 'ok'}]
-        });
-    }
+  function copyAll() {
+    if (found.size === 0) return;
+    const text = [...found.entries()].sort((a, b) => a[1] - b[1]).map(e => e[0]).join("\n");
+    navigator.clipboard.writeText(text).then(() => {
+      tg.showPopup({ title:"کپی شد", message:`${found.size} آی‌پی کپی شد.` });
+      tg.HapticFeedback.impactOccurred();
+    });
+  }
 
-    function copyAllIPs() {
-        if (foundIps.length === 0) return;
-        let allText = foundIps.sort((a, b) => a.latency - b.latency).map(item => item.ip).join('\n');
-        navigator.clipboard.writeText(allText);
-        tg.showPopup({
-            title: 'کپی گروهی!',
-            message: 'تمام آی‌پی‌های یافت شده کپی شدند.',
-            buttons: [{type: 'ok'}]
-        });
-    }
+  $("scanBtn").onclick = () => {
+    if (isScanning) return;
+    toggleButtons();
+    scan($("portSel").value);
+  };
+  $("stopBtn").onclick = () => {
+    isScanning = false;
+    controllers.forEach(c => { try { c.abort(); } catch (e) {} });
+    controllers.clear();
+    $("status").textContent = "اسکن متوقف شد.";
+    toggleButtons();
+  };
+  $("copyAllBtn").onclick = copyAll;
+
+  // آخرین نتیجه را نگه می‌دارد تا با بستن و باز کردن مینی‌اپ از دست نرود
+  (function restore() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "[]");
+      if (saved.length) {
+        found = new Map(saved);
+        render();
+        $("status").textContent = "نتیجهٔ اسکن قبلی (برای نتیجه تازه دوباره اسکن کن).";
+        $("copyAllBtn").style.display = "block";
+        $("copyHint").style.display = "block";
+      }
+    } catch (e) {}
+  })();
 </script>
 </body>
 </html>
