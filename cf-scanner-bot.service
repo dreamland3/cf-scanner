@@ -1,0 +1,18 @@
+[Unit]
+Description=Cloudflare Scanner Telegram Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/cf-scanner
+EnvironmentFile=/etc/cf-scanner.env
+ExecStart=/root/tg_bot_env/bin/python3 bot.py
+Restart=always
+RestartSec=5
+StandardOutput=append:/root/cf-scanner/bot.log
+StandardError=append:/root/cf-scanner/bot.log
+
+[Install]
+WantedBy=multi-user.target
